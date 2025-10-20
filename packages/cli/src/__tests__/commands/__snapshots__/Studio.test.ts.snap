@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`studio with alternative urls and prisma:// queries work if url is prisma:// and directUrl is set 1`] = `
+exports[`studio with alternative urls and prisma:// queries work if url is prisma:// via the mini-proxy 1`] = `
 {
   "action": "clientRequest",
   "channel": "-prisma",
@@ -12,7 +12,7 @@ exports[`studio with alternative urls and prisma:// queries work if url is prism
 }
 `;
 
-exports[`studio with alternative urls and prisma:// queries work if url is prisma:// via the mini-proxy 1`] = `
+exports[`studio with alternative urls and prisma:// should use the direct URL from prisma.config.ts 1`] = `
 {
   "action": "clientRequest",
   "channel": "-prisma",

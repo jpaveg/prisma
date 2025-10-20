@@ -56,16 +56,24 @@ describeIf(!process.env.PRISMA_QUERY_ENGINE_LIBRARY && !process.env.PRISMA_QUERY
       restoreEnv()
     })
 
-    test('queries work if url is prisma:// and directUrl is set', async () => {
+    test('should use the direct URL from prisma.config.ts', async () => {
+      const databaseUrl = process.env.TEST_POSTGRES_URI!.replace('tests', `tests-${Date.now()}-studio`)
       process.env.PDP_URL = 'prisma://aws-us-east-1.prisma-data.com/?api_key=MY_API_KEY'
-      process.env.DATABASE_URL = process.env.TEST_POSTGRES_URI!.replace('tests', `tests-${Date.now()}-studio`)
 
-      ctx.fixture('schema-only-data-proxy-direct-url')
+      ctx.fixture('schema-only-data-proxy')
 
       const studio = Studio.new()
 
-      await DbPush.new().parse(['--schema', 'schema.prisma', '--skip-generate'], defaultTestConfig())
-      const result = studio.parse(['--port', `${STUDIO_TEST_PORT}`, '--browser', 'none'], defaultTestConfig())
+      const config: PrismaConfigInternal = {
+        ...defaultTestConfig(),
+        engine: 'classic',
+        datasource: {
+          url: databaseUrl,
+        },
+      }
+
+      await DbPush.new().parse(['--schema', 'schema.prisma', '--skip-generate'], config)
+      const result = studio.parse(['--port', `${STUDIO_TEST_PORT}`, '--browser', 'none'], config)
 
       await expect(result).resolves.not.toThrow()
 
@@ -92,20 +100,27 @@ describeIf(!process.env.PRISMA_QUERY_ENGINE_LIBRARY && !process.env.PRISMA_QUERY
     })
 
     testIf(process.platform !== 'win32')('queries work if url is prisma:// via the mini-proxy', async () => {
-      process.env.DATABASE_URL = process.env.TEST_POSTGRES_URI!.replace('tests', `tests-${Date.now()}-studio`)
+      const databaseUrl = process.env.TEST_POSTGRES_URI!.replace('tests', `tests-${Date.now()}-studio`)
       process.env.PDP_URL = miniProxy.generateConnectionString({
         envVar: 'PDP_URL',
-        databaseUrl: process.env.DATABASE_URL,
+        databaseUrl: databaseUrl,
         port: miniProxy.defaultServerConfig.port,
       })
 
       ctx.fixture('schema-only-data-proxy')
 
-      await DbPush.new().parse(['--schema', 'schema.prisma', '--skip-generate'], defaultTestConfig())
-      delete process.env.DATABASE_URL
+      const config: PrismaConfigInternal = {
+        ...defaultTestConfig(),
+        engine: 'classic',
+        datasource: {
+          url: databaseUrl,
+        },
+      }
+
+      await DbPush.new().parse(['--schema', 'schema.prisma', '--skip-generate'], config)
 
       const studio = Studio.new()
-      const result = studio.parse(['--port', `${STUDIO_TEST_PORT}`, '--browser', 'none'], defaultTestConfig())
+      const result = studio.parse(['--port', `${STUDIO_TEST_PORT}`, '--browser', 'none'], config)
 
       await expect(result).resolves.not.toThrow()
 
@@ -699,7 +714,7 @@ describeIf(process.env.PRISMA_CLIENT_ENGINE_TYPE !== 'binary')(
     jest.setTimeout(20_000)
 
     afterEach(() => {
-      process.env = { ...originalEnv }
+      restoreEnv()
     })
 
     beforeAll(async () => {
